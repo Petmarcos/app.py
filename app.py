@@ -47,12 +47,32 @@ if uploaded_file is not None:
             
         st.sidebar.success("Arquivo carregado com sucesso!")
 
-        # Mapeamento dinâmico automático de colunas
-        cols = list(df.columns)
-        
+        # --- BOTÃO DE IMPRESSÃO / SALVAR PDF NA SIDEBAR ---
+        st.sidebar.components.v1.html(
+            """
+            <button onclick="window.parent.print()" style="
+                background-color: #0d6efd;
+                color: white;
+                padding: 10px 14px;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: bold;
+                cursor: pointer;
+                width: 100%;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            ">
+                🖨️ Imprimir / Salvar PDF
+            </button>
+            """,
+            height=50
+        )
+
         st.sidebar.markdown("---")
         st.sidebar.subheader("⚙️ Mapeamento de Colunas")
-        
+
+        # Mapeamento dinâmico automático de colunas
+        cols = list(df.columns)
         idx_curso = next((i for i, c in enumerate(cols) if 'curso' in c.lower()), 0)
         idx_campus = next((i for i, c in enumerate(cols) if 'campus' in c.lower()), 0)
         idx_data = next((i for i, c in enumerate(cols) if 'homologa' in c.lower() or 'data' in c.lower() or 'mes' in c.lower()), 0)
@@ -67,28 +87,6 @@ if uploaded_file is not None:
 
         # Conversão de Datas
         df[col_data] = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce')
-
-        # --- BOTÃO DE IMPRESSÃO / SALVAR EM PDF ---
-        col_espaco, col_botao = st.columns([4, 1])
-        with col_botao:
-            st.components.v1.html(
-                """
-                <button onclick="window.parent.print()" style="
-                    background-color: #0d6efd;
-                    color: white;
-                    padding: 10px 18px;
-                    border: none;
-                    border-radius: 6px;
-                    font-size: 15px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    width: 100%;
-                ">
-                    🖨️ Imprimir / Salvar PDF
-                </button>
-                """,
-                height=50
-            )
 
         # --- SEÇÃO 1: CARTÕES NUMÉRICOS (KPIs) ---
         st.markdown("### 📊 Visão Geral")
