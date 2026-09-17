@@ -4,12 +4,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(
-    page_title="Dashboard de Homologação de Diplomas",
+    page_title="Dashboard de Homologação de Diplomas Digitais",
     page_icon="🎓",
     layout="wide"
 )
 
-st.title("🎓 Dashboard de Emissão de Diplomas")
+st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
 # Sidebar - Upload de arquivo
