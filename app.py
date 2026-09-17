@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -48,25 +49,26 @@ if uploaded_file is not None:
         st.sidebar.success("Arquivo carregado com sucesso!")
 
         # --- BOTÃO DE IMPRESSÃO / SALVAR PDF NA SIDEBAR ---
-        st.sidebar.components.v1.html(
-            """
-            <button onclick="window.parent.print()" style="
-                background-color: #0d6efd;
-                color: white;
-                padding: 10px 14px;
-                border: none;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-                cursor: pointer;
-                width: 100%;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            ">
-                🖨️ Imprimir / Salvar PDF
-            </button>
-            """,
-            height=50
-        )
+        with st.sidebar:
+            components.html(
+                """
+                <button onclick="window.parent.print()" style="
+                    background-color: #0d6efd;
+                    color: white;
+                    padding: 10px 14px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    width: 100%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                ">
+                    🖨️ Imprimir / Salvar PDF
+                </button>
+                """,
+                height=50
+            )
 
         st.sidebar.markdown("---")
         st.sidebar.subheader("⚙️ Mapeamento de Colunas")
