@@ -91,17 +91,38 @@ if uploaded_file is not None:
         st.markdown("---")
         st.subheader("Diplomas por Mês de Homologação")
         
-        fig3, ax3 = plt.subplots(figsize=(12, 4))
+        fig3, ax3 = plt.subplots(figsize=(12, 4.5))
         df['AnoMes'] = df[col_data].dt.to_period('M').astype(str)
         temporal_counts = df['AnoMes'].value_counts().sort_index().reset_index()
         temporal_counts.columns = ['Mês', 'Qtd']
 
+        # Desenha a linha e as colunas
         sns.lineplot(data=temporal_counts, x='Mês', y='Qtd', marker='o', linewidth=2.5, color='#1f77b4', ax=ax3)
         sns.barplot(data=temporal_counts, x='Mês', y='Qtd', alpha=0.3, color='#1f77b4', ax=ax3)
+        
+        # --- ADICIONA AS QUANTIDADES EM CADA PONTO DO GRÁFICO ---
+        for i, row in temporal_counts.iterrows():
+            ax3.annotate(
+                f"{int(row['Qtd'])}", 
+                (i, row['Qtd']), 
+                textcoords="offset points", 
+                xytext=(0, 8),  # Desloca o texto 8 pontos acima do ponto/coluna
+                ha='center', 
+                va='bottom', 
+                fontsize=10, 
+                fontweight='bold',
+                color='#1f77b4'
+            )
+
+        # Ajuste de eixos e limites para o texto não cortar no topo
+        ax3.set_ylim(0, temporal_counts['Qtd'].max() * 1.15)
         ax3.set_xlabel("Mês/Ano")
         ax3.set_ylabel("Quantidade Emitida")
         plt.xticks(rotation=45)
+        
         st.pyplot(fig3)
+
+    
 
         # Visualização opcional da planilha
         with st.expander("📋 Ver planilha de dados completa"):
