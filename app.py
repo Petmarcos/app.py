@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(
-    page_title="Dashboard de Homologação de Diplomas Digitais",
+    page_title="Dashboard de Homologação de Diplomas",
     page_icon="🎓",
     layout="wide"
 )
@@ -56,57 +56,76 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
-        # Configuração estética
+        # Configuração estética padrão
         sns.set_theme(style="whitegrid")
 
-        # --- SEÇÃO 2: GRÁFICOS DO DASHBOARD ---
-        row1_col1, row1_col2 = st.columns(2)
+        # --- SEÇÃO 2: GRÁFICOS EMPILHADOS VERTICALMENTE (LARGURA TOTAL) ---
 
-        # 1. Diplomas por Curso (Barras Horizontais - Top 15)
-        with row1_col1:
-            st.subheader("Diplomas emitidos por Curso (Top 15)")
-            fig1, ax1 = plt.subplots(figsize=(8, 6))
-            curso_counts = df[col_curso].value_counts().reset_index()
-            curso_counts.columns = [col_curso, 'Qtd']
-            
-            sns.barplot(data=curso_counts.head(15), y=col_curso, x='Qtd', palette="Blues_r", ax=ax1)
-            ax1.set_xlabel("Quantidade de Diplomas")
-            ax1.set_ylabel("")
-            st.pyplot(fig1)
+        # 1. Diplomas emitidos por Curso (Barras Horizontais - Top 15)
+        st.subheader("Diplomas emitidos por Curso (Top 15)")
+        fig1, ax1 = plt.subplots(figsize=(12, 6))
+        curso_counts = df[col_curso].value_counts().reset_index()
+        curso_counts.columns = [col_curso, 'Qtd']
+        top_cursos = curso_counts.head(15)
 
-        # 2. Diplomas por Campus (Colunas Verticais)
-        with row1_col2:
-            st.subheader("Diplomas emitidos por Campus")
-            fig2, ax2 = plt.subplots(figsize=(8, 6))
-            campus_counts = df[col_campus].value_counts().reset_index()
-            campus_counts.columns = [col_campus, 'Qtd']
-            
-            sns.barplot(data=campus_counts, x=col_campus, y='Qtd', palette="viridis", ax=ax2)
-            ax2.set_xlabel("")
-            ax2.set_ylabel("Quantidade de Diplomas")
-            plt.xticks(rotation=45, ha='right')
-            st.pyplot(fig2)
+        sns.barplot(data=top_cursos, y=col_curso, x='Qtd', palette="Blues_r", ax=ax1)
+        ax1.set_xlabel("Quantidade de Diplomas", fontsize=11)
+        ax1.set_ylabel("", fontsize=11)
+        
+        # Rótulos nas barras horizontais
+        for p in ax1.patches:
+            width = p.get_width()
+            if width > 0:
+                ax1.annotate(f"{int(width)}",
+                             (width + 0.5, p.get_y() + p.get_height() / 2.),
+                             ha='left', va='center', fontsize=10, fontweight='bold', color='#2b2b2b')
+                             
+        ax1.set_xlim(0, top_cursos['Qtd'].max() * 1.1)
+        st.pyplot(fig1)
+
+        st.markdown("---")
+
+        # 2. Diplomas emitidos por Campus (Colunas Verticais)
+        st.subheader("Diplomas emitidos por Campus")
+        fig2, ax2 = plt.subplots(figsize=(12, 5))
+        campus_counts = df[col_campus].value_counts().reset_index()
+        campus_counts.columns = [col_campus, 'Qtd']
+
+        sns.barplot(data=campus_counts, x=col_campus, y='Qtd', palette="viridis", ax=ax2)
+        ax2.set_xlabel("", fontsize=11)
+        ax2.set_ylabel("Quantidade de Diplomas", fontsize=11)
+        plt.xticks(rotation=30, ha='right')
+
+        # Rótulos nas colunas verticais
+        for p in ax2.patches:
+            height = p.get_height()
+            if height > 0:
+                ax2.annotate(f"{int(height)}",
+                             (p.get_x() + p.get_width() / 2., height + 2),
+                             ha='center', va='bottom', fontsize=10, fontweight='bold', color='#2b2b2b')
+
+        ax2.set_ylim(0, campus_counts['Qtd'].max() * 1.12)
+        st.pyplot(fig2)
+
+        st.markdown("---")
 
         # 3. Diplomas por Mês de Homologação (Série Temporal)
-        st.markdown("---")
         st.subheader("Diplomas por Mês de Homologação")
-        
         fig3, ax3 = plt.subplots(figsize=(12, 4.5))
         df['AnoMes'] = df[col_data].dt.to_period('M').astype(str)
         temporal_counts = df['AnoMes'].value_counts().sort_index().reset_index()
         temporal_counts.columns = ['Mês', 'Qtd']
 
-        # Desenha a linha e as colunas
         sns.lineplot(data=temporal_counts, x='Mês', y='Qtd', marker='o', linewidth=2.5, color='#1f77b4', ax=ax3)
         sns.barplot(data=temporal_counts, x='Mês', y='Qtd', alpha=0.3, color='#1f77b4', ax=ax3)
-        
-        # --- ADICIONA AS QUANTIDADES EM CADA PONTO DO GRÁFICO ---
+
+        # Rótulos de quantidade em cada ponto da linha
         for i, row in temporal_counts.iterrows():
             ax3.annotate(
                 f"{int(row['Qtd'])}", 
                 (i, row['Qtd']), 
                 textcoords="offset points", 
-                xytext=(0, 8),  # Desloca o texto 8 pontos acima do ponto/coluna
+                xytext=(0, 8), 
                 ha='center', 
                 va='bottom', 
                 fontsize=10, 
@@ -114,15 +133,11 @@ if uploaded_file is not None:
                 color='#1f77b4'
             )
 
-        # Ajuste de eixos e limites para o texto não cortar no topo
         ax3.set_ylim(0, temporal_counts['Qtd'].max() * 1.15)
-        ax3.set_xlabel("Mês/Ano")
-        ax3.set_ylabel("Quantidade Emitida")
+        ax3.set_xlabel("Mês/Ano", fontsize=11)
+        ax3.set_ylabel("Quantidade Emitida", fontsize=11)
         plt.xticks(rotation=45)
-        
         st.pyplot(fig3)
-
-    
 
         # Visualização opcional da planilha
         with st.expander("📋 Ver planilha de dados completa"):
