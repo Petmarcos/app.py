@@ -35,10 +35,14 @@ if uploaded_file is not None:
         idx_curso = next((i for i, c in enumerate(cols) if 'curso' in c.lower()), 0)
         idx_campus = next((i for i, c in enumerate(cols) if 'campus' in c.lower()), 0)
         idx_data = next((i for i, c in enumerate(cols) if 'homologa' in c.lower() or 'data' in c.lower() or 'mes' in c.lower()), 0)
+        idx_livro = next((i for i, c in enumerate(cols) if 'livro' in c.lower()), 0)
+        idx_registro = next((i for i, c in enumerate(cols) if 'registro' in c.lower() or 'num' in c.lower()), 0)
 
         col_curso = st.sidebar.selectbox("Coluna de Cursos", cols, index=idx_curso)
         col_campus = st.sidebar.selectbox("Coluna de Campus", cols, index=idx_campus)
         col_data = st.sidebar.selectbox("Coluna de Data/Mês", cols, index=idx_data)
+        col_livro = st.sidebar.selectbox("Coluna de Livros", cols, index=idx_livro)
+        col_registro = st.sidebar.selectbox("Coluna de Registros", cols, index=idx_registro)
 
         # Conversão de Datas
         df[col_data] = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce')
@@ -56,12 +60,57 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
+        # --- SEÇÃO 2: QUADRO RESUMO DE REGISTROS POR LIVRO ---
+        st.subheader("Quadro Resumo de Registros por Livro")
+        
+        if col_livro in df.columns and col_registro in df.columns:
+            # Conversão para tipo numérico para ordenação e cálculo de min/max
+            df[col_registro] = pd.to_numeric(df[col_registro], errors='coerce')
+            
+            resumo_list = []
+            for livro, group in df.groupby(col_livro):
+                qtd = len(group)
+                min_reg = group[col_registro].min()
+                max_reg = group[col_registro].max()
+                
+                if pd.notna(min_reg) and pd.notna(max_reg):
+                    min_reg = int(min_reg)
+                    max_reg = int(max_reg)
+                    if min_reg == max_reg:
+                        intervalo = f"{min_reg}"
+                    else:
+                        intervalo = f"{min_reg} a {max_reg}"
+                else:
+                    intervalo = "N/A"
+                    
+                resumo_list.append({
+                    "Livro": str(livro),
+                    "Registros": qtd,
+                    "Intervalo": intervalo
+                })
+            
+            df_resumo = pd.DataFrame(resumo_list)
+            
+            # Linha final com o somatório total
+            total_row = pd.DataFrame([{
+                "Livro": "Total",
+                "Registros": df_resumo["Registros"].sum(),
+                "Intervalo": ""
+            }])
+            df_resumo_final = pd.concat([df_resumo, total_row], ignore_index=True)
+            
+            st.dataframe(df_resumo_final, hide_index=True, use_container_width=True)
+        else:
+            st.warning("Selecione as colunas correspondentes a 'Livro' e 'N° Registro' no menu lateral.")
+
+        st.markdown("---")
+
         # Configuração estética padrão
         sns.set_theme(style="whitegrid")
 
-        # --- SEÇÃO 2: GRÁFICOS EMPILHADOS VERTICALMENTE (LARGURA TOTAL) ---
+        # --- SEÇÃO 3: GRÁFICOS EMPILHADOS VERTICALMENTE ---
 
-        # 1. Diplomas emitidos por Curso (Barras Horizontais - Top 15)
+        # 1. Diplomas emitidos por Curso (Top 15)
         st.subheader("Diplomas emitidos por Curso (Top 15)")
         fig1, ax1 = plt.subplots(figsize=(12, 6))
         curso_counts = df[col_curso].value_counts().reset_index()
@@ -72,7 +121,6 @@ if uploaded_file is not None:
         ax1.set_xlabel("Quantidade de Diplomas", fontsize=11)
         ax1.set_ylabel("", fontsize=11)
         
-        # Rótulos nas barras horizontais
         for p in ax1.patches:
             width = p.get_width()
             if width > 0:
@@ -85,7 +133,7 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
-        # 2. Diplomas emitidos por Campus (Colunas Verticais)
+        # 2. Diplomas emitidos por Campus
         st.subheader("Diplomas emitidos por Campus")
         fig2, ax2 = plt.subplots(figsize=(12, 5))
         campus_counts = df[col_campus].value_counts().reset_index()
@@ -96,7 +144,6 @@ if uploaded_file is not None:
         ax2.set_ylabel("Quantidade de Diplomas", fontsize=11)
         plt.xticks(rotation=30, ha='right')
 
-        # Rótulos nas colunas verticais
         for p in ax2.patches:
             height = p.get_height()
             if height > 0:
@@ -109,7 +156,7 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
-        # 3. Diplomas por Mês de Homologação (Série Temporal)
+        # 3. Diplomas por Mês de Homologação
         st.subheader("Diplomas por Mês de Homologação")
         fig3, ax3 = plt.subplots(figsize=(12, 4.5))
         df['AnoMes'] = df[col_data].dt.to_period('M').astype(str)
@@ -119,7 +166,6 @@ if uploaded_file is not None:
         sns.lineplot(data=temporal_counts, x='Mês', y='Qtd', marker='o', linewidth=2.5, color='#1f77b4', ax=ax3)
         sns.barplot(data=temporal_counts, x='Mês', y='Qtd', alpha=0.3, color='#1f77b4', ax=ax3)
 
-        # Rótulos de quantidade em cada ponto da linha
         for i, row in temporal_counts.iterrows():
             ax3.annotate(
                 f"{int(row['Qtd'])}", 
