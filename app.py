@@ -9,6 +9,27 @@ st.set_page_config(
     layout="wide"
 )
 
+# Estilo CSS para formatar a página ao imprimir (oculta a sidebar e botões)
+st.markdown("""
+    <style>
+    @media print {
+        /* Esconde a barra lateral (Sidebar) na impressão */
+        [data-testid="stSidebar"] {
+            display: none !important;
+        }
+        /* Esconde o cabeçalho superior e botões da interface */
+        header, [data-testid="stHeader"], footer, button, iframe {
+            display: none !important;
+        }
+        /* Ajusta as margens para ocupar o papel todo */
+        .main .block-container {
+            padding: 0.5rem !important;
+            max-width: 100% !important;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
@@ -41,11 +62,33 @@ if uploaded_file is not None:
         col_curso = st.sidebar.selectbox("Coluna de Cursos", cols, index=idx_curso)
         col_campus = st.sidebar.selectbox("Coluna de Campus", cols, index=idx_campus)
         col_data = st.sidebar.selectbox("Coluna de Data/Mês", cols, index=idx_data)
-        col_livro = st.sidebar.selectbox("Coluna de Livros", cols, index=idx_livro)
-        col_registro = st.sidebar.selectbox("Coluna de Registros", cols, index=idx_registro)
+        col_livro = st.sidebar.selectbox("Coluna de Livro", cols, index=idx_livro)
+        col_registro = st.sidebar.selectbox("Coluna de N° Registro", cols, index=idx_registro)
 
         # Conversão de Datas
         df[col_data] = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce')
+
+        # --- BOTÃO DE IMPRESSÃO / SALVAR EM PDF ---
+        col_espaco, col_botao = st.columns([4, 1])
+        with col_botao:
+            st.components.v1.html(
+                """
+                <button onclick="window.parent.print()" style="
+                    background-color: #0d6efd;
+                    color: white;
+                    padding: 10px 18px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 15px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    width: 100%;
+                ">
+                    🖨️ Imprimir / Salvar PDF
+                </button>
+                """,
+                height=50
+            )
 
         # --- SEÇÃO 1: CARTÕES NUMÉRICOS (KPIs) ---
         st.markdown("### 📊 Visão Geral")
@@ -64,7 +107,6 @@ if uploaded_file is not None:
         st.subheader("Quadro Resumo de Registros por Livro")
         
         if col_livro in df.columns and col_registro in df.columns:
-            # Conversão para tipo numérico para ordenação e cálculo de min/max
             df[col_registro] = pd.to_numeric(df[col_registro], errors='coerce')
             
             resumo_list = []
@@ -91,7 +133,6 @@ if uploaded_file is not None:
             
             df_resumo = pd.DataFrame(resumo_list)
             
-            # Linha final com o somatório total
             total_row = pd.DataFrame([{
                 "Livro": "Total",
                 "Registros": df_resumo["Registros"].sum(),
@@ -101,7 +142,7 @@ if uploaded_file is not None:
             
             st.dataframe(df_resumo_final, hide_index=True, use_container_width=True)
         else:
-            st.warning("Selecione as colunas correspondentes a 'Livro' e 'N° Registro' no menu lateral.")
+            st.warning("Selecione as colunas corretas de 'Livro' e 'N° Registro' na barra lateral para exibir esta tabela.")
 
         st.markdown("---")
 
