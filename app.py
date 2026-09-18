@@ -13,7 +13,7 @@ st.set_page_config(
 # --- REGRAS DE ESTILO E CONTRASTE PARA TELA E IMPRESSÃO / PDF ---
 st.markdown("""
     <style>
-    /* Estilização da tabela HTML nativa na tela */
+    /* Estilização da tabela HTML nativa na tela (Sem linhas internas entre registros) */
     .tabela-relatorio {
         width: 100%;
         border-collapse: collapse;
@@ -27,10 +27,11 @@ st.markdown("""
         text-align: left;
         padding: 9px;
         font-weight: bold;
+        border-bottom: none;
     }
     .tabela-relatorio td {
         padding: 7px 9px;
-        border-bottom: 1px solid #ddd;
+        border-bottom: none; /* Remove a linha/divisória entre as linhas da tabela */
     }
     .tabela-relatorio tr:nth-child(even) {
         background-color: #f9f9f9;
@@ -78,17 +79,19 @@ st.markdown("""
             color: #000000 !important;
         }
 
-        /* Mantém o cabeçalho da tabela escuro com texto branco na impressão */
+        /* Mantém a estética limpa para o relatório em papel/PDF */
         .tabela-relatorio th {
             background-color: #222222 !important;
             color: #ffffff !important;
         }
         .tabela-relatorio td {
             color: #000000 !important;
+            border-bottom: none !important;
         }
         .tabela-relatorio tr.linha-total {
             background-color: #f0f0f0 !important;
             color: #000000 !important;
+            border-top: 2px solid #000000 !important;
         }
     }
     </style>
