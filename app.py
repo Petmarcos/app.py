@@ -13,36 +13,39 @@ st.set_page_config(
 # --- REGRAS DE ESTILO E CONTRASTE PARA TELA E IMPRESSÃO / PDF ---
 st.markdown("""
     <style>
-    /* 1. TELA: Tabela limpa SEM linhas divisórias internas */
+    /* 1. TELA: Tabela limpa, sem faixas/zebrado branco e sem bordas internas */
     .tabela-relatorio {
         width: 100%;
         border-collapse: collapse;
         font-family: sans-serif;
         font-size: 14px;
         margin-bottom: 25px;
+        background-color: transparent !important;
     }
     .tabela-relatorio th {
-        background-color: #1f77b4;
-        color: white;
+        background-color: #1f77b4 !important;
+        color: #ffffff !important;
         text-align: left;
-        padding: 9px;
+        padding: 10px;
         font-weight: bold;
-        border-bottom: none !important;
+        border: none !important;
     }
     .tabela-relatorio td {
-        padding: 7px 9px;
-        border-bottom: none !important; /* Sem linha na tela */
+        padding: 8px 10px;
+        border: none !important; /* Sem linhas e sem bordas na tela */
+        color: inherit;
     }
-    .tabela-relatorio tr:nth-child(even) {
-        background-color: #f9f9f9;
+    /* Remove o fundo branco alternado (zebrado) na tela */
+    .tabela-relatorio tr {
+        background-color: transparent !important;
     }
     .tabela-relatorio tr.linha-total {
         font-weight: bold;
-        background-color: #e6f2ff !important;
+        background-color: rgba(31, 119, 180, 0.2) !important;
         border-top: 2px solid #1f77b4 !important;
     }
 
-    /* 2. IMPRESSÃO / PDF: Força a inclusão das linhas divisórias elegantes */
+    /* 2. IMPRESSÃO / PDF: Mantém estilo executivo com linhas cinzas finas e fundo branco */
     @media print {
         /* Oculta sidebar, headers e botões de interface */
         [data-testid="stSidebar"], header, [data-testid="stHeader"], footer, button, iframe, .stButton {
@@ -63,7 +66,7 @@ st.markdown("""
 
         /* Força fundo branco e textos pretos no PDF */
         html, body, .main, [data-testid="stAppViewContainer"] {
-            background-color: white !important;
+            background-color: #ffffff !important;
             color: #000000 !important;
         }
 
@@ -77,7 +80,7 @@ st.markdown("""
             color: #000000 !important;
         }
 
-        /* MANTEIN A LINHA DIVISÓRIA CINZA APENAS NA IMPRESSÃO */
+        /* Tabela no papel/PDF: Borda cinza fina e fundo zebrado suave no papel */
         .tabela-relatorio th {
             background-color: #222222 !important;
             color: #ffffff !important;
@@ -85,10 +88,13 @@ st.markdown("""
         }
         .tabela-relatorio td {
             color: #000000 !important;
-            border-bottom: 1px solid #d0d0d0 !important; /* Linha de impressão reativada */
+            border-bottom: 1px solid #d0d0d0 !important; /* Linha divisória cinza fina na impressão */
+        }
+        .tabela-relatorio tr:nth-child(even) {
+            background-color: #f8f9fa !important; /* Zebrado suave exclusivo para o papel */
         }
         .tabela-relatorio tr.linha-total {
-            background-color: #f0f0f0 !important;
+            background-color: #eaeff5 !important;
             color: #000000 !important;
             border-top: 2px solid #000000 !important;
         }
