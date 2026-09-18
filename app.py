@@ -44,10 +44,10 @@ st.markdown("""
         border-top: 2px solid #1f77b4 !important;
     }
 
-    /* 2. IMPRESSÃO / PDF: Ajuste de Layout e Centralização Vertical por Página */
+    /* 2. IMPRESSÃO / PDF: Ajuste de Layout, Contraste Limpo e Ocultação do Expander */
     @media print {
-        /* Oculta sidebar, headers e botões de interface */
-        [data-testid="stSidebar"], header, [data-testid="stHeader"], footer, button, iframe, .stButton {
+        /* Oculta sidebar, headers, botões e o expander de planilha */
+        [data-testid="stSidebar"], header, [data-testid="stHeader"], footer, button, iframe, .stButton, .stExpander, details {
             display: none !important;
         }
         
@@ -63,25 +63,7 @@ st.markdown("""
             break-after: page !important;
         }
 
-        /* Centralização Vertical para a Página 3 (Dois Gráficos) */
-        .container-pagina-3 {
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            min-height: 92vh !important;
-            page-break-after: always !important;
-            break-after: page !important;
-        }
-
-        /* Centralização Vertical para a Página 4 (Um Gráfico) */
-        .container-pagina-4 {
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: center !important;
-            min-height: 92vh !important;
-        }
-
-        /* Força fundo branco e textos pretos no PDF */
+        /* Força fundo branco e textos pretos no PDF sem sombras */
         html, body, .main, [data-testid="stAppViewContainer"] {
             background-color: #ffffff !important;
             color: #000000 !important;
@@ -89,15 +71,17 @@ st.markdown("""
 
         h1, h2, h3, h4, h5, h6, p, label, span, div {
             color: #000000 !important;
+            text-shadow: none !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
 
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
             color: #000000 !important;
+            text-shadow: none !important;
         }
 
-        /* Tabela no papel/PDF */
+        /* Tabela no papel/PDF com bordas limpas */
         .tabela-relatorio th {
             background-color: #222222 !important;
             color: #ffffff !important;
@@ -119,7 +103,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
+st.title("🎓 Dashboard de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
 # Sidebar - Upload de arquivo
@@ -302,32 +286,35 @@ if uploaded_file is not None:
         # FORÇA QUEBRA DE PÁGINA APÓS AS TABELAS
         st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
 
-        # Estilo dos Gráficos
+        # Configuração de Estilo Nítido e Limpo para os Gráficos
+        plt.rcdefaults()
         sns.set_theme(style="whitegrid")
 
         # =======================================================
-        # PÁGINA 3: DOIS GRÁFICOS CENTRALIZADOS VERTICALMENTE
+        # GRÁFICOS (PÁGINA DE GRÁFICOS)
         # =======================================================
-        st.markdown('<div class="container-pagina-3">', unsafe_allow_html=True)
 
         # 1. Diplomas por Curso (Top 15)
         st.subheader("Diplomas emitidos por Curso (Top 15)")
-        fig1, ax1 = plt.subplots(figsize=(12, 4.8), dpi=300)
+        fig1, ax1 = plt.subplots(figsize=(10, 4.2), dpi=300)
+        fig1.patch.set_facecolor('white')
+        ax1.set_facecolor('white')
+
         curso_counts = df[col_curso].value_counts().reset_index()
         curso_counts.columns = [col_curso, 'Qtd']
         top_cursos = curso_counts.head(15)
 
         sns.barplot(data=top_cursos, y=col_curso, x='Qtd', palette="Blues_r", ax=ax1)
-        ax1.set_xlabel("Quantidade de Diplomas", fontsize=11, fontweight='bold')
-        ax1.set_ylabel("", fontsize=11)
-        ax1.tick_params(axis='both', labelsize=10)
+        ax1.set_xlabel("Quantidade de Diplomas", fontsize=10, fontweight='bold', color='black')
+        ax1.set_ylabel("", fontsize=10)
+        ax1.tick_params(axis='both', labelsize=9, colors='black')
         
         for p in ax1.patches:
             width = p.get_width()
             if width > 0:
                 ax1.annotate(f"{int(width)}",
                              (width + 0.5, p.get_y() + p.get_height() / 2.),
-                             ha='left', va='center', fontsize=10, fontweight='bold', color='#111111')
+                             ha='left', va='center', fontsize=9, fontweight='bold', color='black')
                              
         ax1.set_xlim(0, top_cursos['Qtd'].max() * 1.1)
         st.pyplot(fig1)
@@ -336,43 +323,46 @@ if uploaded_file is not None:
 
         # 2. Diplomas por Campus
         st.subheader("Diplomas emitidos por Campus")
-        fig2, ax2 = plt.subplots(figsize=(12, 4.2), dpi=300)
+        fig2, ax2 = plt.subplots(figsize=(10, 3.8), dpi=300)
+        fig2.patch.set_facecolor('white')
+        ax2.set_facecolor('white')
+
         campus_counts = df[col_campus].value_counts().reset_index()
         campus_counts.columns = [col_campus, 'Qtd']
 
         sns.barplot(data=campus_counts, x=col_campus, y='Qtd', palette="viridis", ax=ax2)
-        ax2.set_xlabel("", fontsize=11)
-        ax2.set_ylabel("Quantidade de Diplomas", fontsize=11, fontweight='bold')
-        ax2.tick_params(axis='both', labelsize=10)
-        plt.xticks(rotation=25, ha='right', fontsize=10)
+        ax2.set_xlabel("", fontsize=10)
+        ax2.set_ylabel("Quantidade de Diplomas", fontsize=10, fontweight='bold', color='black')
+        ax2.tick_params(axis='both', labelsize=9, colors='black')
+        plt.xticks(rotation=25, ha='right', fontsize=9, color='black')
 
         for p in ax2.patches:
             height = p.get_height()
             if height > 0:
                 ax2.annotate(f"{int(height)}",
                              (p.get_x() + p.get_width() / 2., height + 2),
-                             ha='center', va='bottom', fontsize=10, fontweight='bold', color='#111111')
+                             ha='center', va='bottom', fontsize=9, fontweight='bold', color='black')
 
         ax2.set_ylim(0, campus_counts['Qtd'].max() * 1.12)
         st.pyplot(fig2)
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        # QUEBRA DE PÁGINA PARA O GRÁFICO TEMPORAL
+        st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
 
-        # =======================================================
-        # PÁGINA 4: EVOLUÇÃO MENSAL CENTRALIZADA VERTICALMENTE
-        # =======================================================
-        st.markdown('<div class="container-pagina-4">', unsafe_allow_html=True)
-
+        # 3. Diplomas por Mês de Homologação (SÉRIE TEMPORAL)
         st.subheader("Diplomas por Mês de Homologação")
-        fig3, ax3 = plt.subplots(figsize=(12, 5.5), dpi=300)
+        fig3, ax3 = plt.subplots(figsize=(10, 4.5), dpi=300)
+        fig3.patch.set_facecolor('white')
+        ax3.set_facecolor('white')
+
         df['AnoMes'] = df[col_data_homol].dt.to_period('M').astype(str)
         temporal_counts = df['AnoMes'].value_counts().sort_index().reset_index()
         temporal_counts.columns = ['Mês', 'Qtd']
 
-        sns.lineplot(data=temporal_counts, x='Mês', y='Qtd', marker='o', linewidth=2.5, color='#1f77b4', ax=ax3)
+        sns.lineplot(data=temporal_counts, x='Mês', y='Qtd', marker='o', linewidth=2, color='#1f77b4', ax=ax3)
         sns.barplot(data=temporal_counts, x='Mês', y='Qtd', alpha=0.3, color='#1f77b4', ax=ax3)
 
-        ax3.tick_params(axis='both', labelsize=10)
+        ax3.tick_params(axis='both', labelsize=9, colors='black')
         for i, row in temporal_counts.iterrows():
             ax3.annotate(
                 f"{int(row['Qtd'])}", 
@@ -381,20 +371,18 @@ if uploaded_file is not None:
                 xytext=(0, 8), 
                 ha='center', 
                 va='bottom', 
-                fontsize=10, 
+                fontsize=9, 
                 fontweight='bold',
                 color='#003366'
             )
 
         ax3.set_ylim(0, temporal_counts['Qtd'].max() * 1.15)
-        ax3.set_xlabel("Mês/Ano", fontsize=11, fontweight='bold')
-        ax3.set_ylabel("Quantidade Emitida", fontsize=11, fontweight='bold')
-        plt.xticks(rotation=45, fontsize=10)
+        ax3.set_xlabel("Mês/Ano", fontsize=10, fontweight='bold', color='black')
+        ax3.set_ylabel("Quantidade Emitida", fontsize=10, fontweight='bold', color='black')
+        plt.xticks(rotation=45, fontsize=9, color='black')
         st.pyplot(fig3)
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Tabela expansível na tela
+        # Tabela expansível na tela (Oculta automaticamente no PDF/Impressão)
         with st.expander("📋 Ver planilha de dados completa"):
             st.dataframe(df)
 
