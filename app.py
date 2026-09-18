@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- REGRAS DE ESTILO E QUEBRA DE PÁGINA PARA IMPRESSÃO / PDF ---
+# --- REGRAS DE ESTILO E CONTRASTE PARA TELA E IMPRESSÃO / PDF ---
 st.markdown("""
     <style>
     /* Estilização da tabela HTML nativa na tela */
@@ -43,7 +43,7 @@ st.markdown("""
 
     /* REGRAS EXCLUSIVAS DE IMPRESSÃO (@media print) */
     @media print {
-        /* Oculta sidebar, headers e botões */
+        /* Oculta sidebar, headers e botões de interface */
         [data-testid="stSidebar"], header, [data-testid="stHeader"], footer, button, iframe, .stButton {
             display: none !important;
         }
@@ -60,18 +60,35 @@ st.markdown("""
             break-after: page !important;
         }
 
-        /* Garante cor de fundo e textos pretos para impressão legível */
-        body, .main {
+        /* Força fundo branco e textos escuros/pretos para nitidez total no PDF */
+        html, body, .main, [data-testid="stAppViewContainer"] {
             background-color: white !important;
-            color: black !important;
+            color: #000000 !important;
         }
-        
+
+        /* Garante que títulos, subtítulos e descrições fiquem pretos */
+        h1, h2, h3, h4, h5, h6, p, label, span, div {
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        /* Força a cor dos cartões de métrica (KPIs) para preto */
+        [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+            color: #000000 !important;
+        }
+
+        /* Mantém o cabeçalho da tabela escuro com texto branco */
         .tabela-relatorio th {
-            background-color: #333 !important;
-            color: white !important;
+            background-color: #222222 !important;
+            color: #ffffff !important;
         }
         .tabela-relatorio td {
-            color: black !important;
+            color: #000000 !important;
+        }
+        .tabela-relatorio tr.linha-total {
+            background-color: #f0f0f0 !important;
+            color: #000000 !important;
         }
     }
     </style>
@@ -181,7 +198,7 @@ if uploaded_file is not None:
             df_resumo = pd.DataFrame(resumo_list)
             total_registros = df_resumo["Registros"].sum()
 
-            # Construção da Tabela HTML sem rolagem (Exibe 100% das linhas)
+            # Construção da Tabela HTML
             html_tabela = """<table class="tabela-relatorio">
                 <thead>
                     <tr>
@@ -304,7 +321,7 @@ if uploaded_file is not None:
         plt.xticks(rotation=45, fontsize=11)
         st.pyplot(fig3)
 
-        # Tabela expansível na tela (opcional)
+        # Tabela expansível na tela
         with st.expander("📋 Ver planilha de dados completa"):
             st.dataframe(df)
 
