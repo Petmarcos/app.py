@@ -144,6 +144,7 @@ if uploaded_file is not None:
         idx_data_concl = next((i for i, c in enumerate(cols) if 'conclu' in c.lower() or 'fim' in c.lower()), 0)
         idx_livro = next((i for i, c in enumerate(cols) if 'livro' in c.lower()), 0)
         idx_registro = next((i for i, c in enumerate(cols) if 'registro' in c.lower() or 'num' in c.lower()), 0)
+        idx_processo = next((i for i, c in enumerate(cols) if 'processo' in c.lower() or 'proc' in c.lower() or 'protocolo' in c.lower()), 0)
 
         col_curso = st.sidebar.selectbox("Coluna de Cursos", cols, index=idx_curso)
         col_campus = st.sidebar.selectbox("Coluna de Campus", cols, index=idx_campus)
@@ -151,6 +152,7 @@ if uploaded_file is not None:
         col_data_concl = st.sidebar.selectbox("Coluna Concluído Em", cols, index=idx_data_concl)
         col_livro = st.sidebar.selectbox("Coluna de Livro", cols, index=idx_livro)
         col_registro = st.sidebar.selectbox("Coluna de N° Registro", cols, index=idx_registro)
+        col_processo = st.sidebar.selectbox("Coluna N° do Processo", cols, index=idx_processo)
 
         # Conversão de Datas e Cálculo do Ciclo de Vida
         df[col_data_homol] = pd.to_datetime(df[col_data_homol], dayfirst=True, errors='coerce')
@@ -246,9 +248,7 @@ if uploaded_file is not None:
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>N° Registro</th>
-                        <th>Livro</th>
-                        <th>Curso</th>
+                        <th>N° do Processo</th>
                         <th>Homologação</th>
                         <th>Concluído Em</th>
                         <th>Ciclo de Vida (Dias)</th>
@@ -259,13 +259,11 @@ if uploaded_file is not None:
             for rank, (_, row) in enumerate(top15_ciclo.iterrows(), 1):
                 data_h_str = row[col_data_homol].strftime('%d/%m/%Y') if pd.notna(row[col_data_homol]) else '-'
                 data_c_str = row[col_data_concl].strftime('%d/%m/%Y') if pd.notna(row[col_data_concl]) else '-'
-                reg_str = f"{int(row[col_registro])}" if pd.notna(row[col_registro]) else '-'
+                proc_str = str(row[col_processo]) if pd.notna(row[col_processo]) else '-'
                 
                 html_tabela_ciclo += f"""<tr>
                     <td><b>{rank}</b></td>
-                    <td>{reg_str}</td>
-                    <td>{row[col_livro]}</td>
-                    <td>{row[col_curso]}</td>
+                    <td>{proc_str}</td>
                     <td>{data_h_str}</td>
                     <td>{data_c_str}</td>
                     <td><b>{int(row['Ciclo_em_Dias'])} dias</b></td>
@@ -274,7 +272,7 @@ if uploaded_file is not None:
             html_tabela_ciclo += "</tbody></table>"
             st.markdown(html_tabela_ciclo, unsafe_allow_html=True)
         else:
-            st.info("Não foi possível calcular o ciclo de vida. Verifique as colunas de datas na barra lateral.")
+            st.info("Não foi possível calcular o ciclo de vida. Verifique as colunas de datas e processo na barra lateral.")
 
         # FORÇA QUEBRA DE PÁGINA APÓS A PÁGINA 1
         st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
