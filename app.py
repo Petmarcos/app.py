@@ -103,7 +103,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 Dashboard de Diplomas Digitais")
+st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
 # Sidebar - Upload de arquivo
@@ -245,14 +245,45 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
-        # 2. TOP 15 PROCESSOS COM MAIOR CICLO DE VIDA (EM DIAS)
-        st.subheader("Top 15 Processos com Maior Ciclo de Vida (em dias)")
+        # 2. DISTRIBUIÇÃO DOS 20 MAIORES PRAZOS / CICLOS (FREQUÊNCIA)
+        st.subheader("Distribuição dos 20 Maiores Prazos de Conclusão")
         
         df_valid_ciclo = df.dropna(subset=['Ciclo_em_Dias']).copy()
         df_valid_ciclo = df_valid_ciclo[df_valid_ciclo['Ciclo_em_Dias'] >= 0]
-        top15_ciclo = df_valid_ciclo.sort_values(by='Ciclo_em_Dias', ascending=False).head(15)
+        
+        if not df_valid_ciclo.empty:
+            prazos_freq = df_valid_ciclo['Ciclo_em_Dias'].value_counts().reset_index()
+            prazos_freq.columns = ['Ciclo (dias)', 'Quantidade de registros']
+            prazos_top20 = prazos_freq.sort_values(by='Ciclo (dias)', ascending=False).head(20)
 
-        if not top15_ciclo.empty:
+            html_tabela_prazos = """<table class="tabela-relatorio">
+                <thead>
+                    <tr>
+                        <th>Ciclo (dias)</th>
+                        <th>Quantidade de registros</th>
+                    </tr>
+                </thead>
+                <tbody>"""
+            
+            for _, row in prazos_top20.iterrows():
+                html_tabela_prazos += f"""<tr>
+                    <td><b>{int(row['Ciclo (dias)'])} dias</b></td>
+                    <td>{int(row['Quantidade de registros'])}</td>
+                </tr>"""
+                
+            html_tabela_prazos += "</tbody></table>"
+            st.markdown(html_tabela_prazos, unsafe_allow_html=True)
+        else:
+            st.info("Não foi possível calcular os prazos. Verifique as colunas de datas na barra lateral.")
+
+        st.markdown("---")
+
+        # 3. TOP 30 PROCESSOS COM MAIOR CICLO DE VIDA (EM DIAS)
+        st.subheader("Top 30 Processos com Maior Ciclo de Vida (em dias)")
+        
+        top30_ciclo = df_valid_ciclo.sort_values(by='Ciclo_em_Dias', ascending=False).head(30)
+
+        if not top30_ciclo.empty:
             html_tabela_ciclo = """<table class="tabela-relatorio">
                 <thead>
                     <tr>
@@ -265,7 +296,7 @@ if uploaded_file is not None:
                 </thead>
                 <tbody>"""
             
-            for rank, (_, row) in enumerate(top15_ciclo.iterrows(), 1):
+            for rank, (_, row) in enumerate(top30_ciclo.iterrows(), 1):
                 data_h_str = row[col_data_homol].strftime('%d/%m/%Y') if pd.notna(row[col_data_homol]) else '-'
                 data_c_str = row[col_data_concl].strftime('%d/%m/%Y') if pd.notna(row[col_data_concl]) else '-'
                 proc_str = str(row[col_processo]) if pd.notna(row[col_processo]) else '-'
@@ -291,7 +322,7 @@ if uploaded_file is not None:
         sns.set_theme(style="whitegrid")
 
         # =======================================================
-        # GRÁFICOS (PÁGINA DE GRÁFICOS)
+        # GRÁFICOS (PÁGINAS SEGUINTES)
         # =======================================================
 
         # 1. Diplomas por Curso (Top 15)
