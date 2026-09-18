@@ -18,18 +18,18 @@ st.markdown("""
         width: 100%;
         border-collapse: collapse;
         font-family: sans-serif;
-        font-size: 15px;
-        margin-bottom: 20px;
+        font-size: 14px;
+        margin-bottom: 25px;
     }
     .tabela-relatorio th {
         background-color: #1f77b4;
         color: white;
         text-align: left;
-        padding: 10px;
+        padding: 9px;
         font-weight: bold;
     }
     .tabela-relatorio td {
-        padding: 8px 10px;
+        padding: 7px 9px;
         border-bottom: 1px solid #ddd;
     }
     .tabela-relatorio tr:nth-child(even) {
@@ -78,7 +78,7 @@ st.markdown("""
             color: #000000 !important;
         }
 
-        /* Mantém o cabeçalho da tabela escuro com texto branco */
+        /* Mantém o cabeçalho da tabela escuro com texto branco na impressão */
         .tabela-relatorio th {
             background-color: #222222 !important;
             color: #ffffff !important;
@@ -140,21 +140,25 @@ if uploaded_file is not None:
         cols = list(df.columns)
         idx_curso = next((i for i, c in enumerate(cols) if 'curso' in c.lower()), 0)
         idx_campus = next((i for i, c in enumerate(cols) if 'campus' in c.lower()), 0)
-        idx_data = next((i for i, c in enumerate(cols) if 'homologa' in c.lower() or 'data' in c.lower() or 'mes' in c.lower()), 0)
+        idx_data_homol = next((i for i, c in enumerate(cols) if 'homologa' in c.lower() or 'data' in c.lower() or 'mes' in c.lower()), 0)
+        idx_data_concl = next((i for i, c in enumerate(cols) if 'conclu' in c.lower() or 'fim' in c.lower()), 0)
         idx_livro = next((i for i, c in enumerate(cols) if 'livro' in c.lower()), 0)
         idx_registro = next((i for i, c in enumerate(cols) if 'registro' in c.lower() or 'num' in c.lower()), 0)
 
         col_curso = st.sidebar.selectbox("Coluna de Cursos", cols, index=idx_curso)
         col_campus = st.sidebar.selectbox("Coluna de Campus", cols, index=idx_campus)
-        col_data = st.sidebar.selectbox("Coluna de Data/Mês", cols, index=idx_data)
+        col_data_homol = st.sidebar.selectbox("Coluna Data da Homologação", cols, index=idx_data_homol)
+        col_data_concl = st.sidebar.selectbox("Coluna Concluído Em", cols, index=idx_data_concl)
         col_livro = st.sidebar.selectbox("Coluna de Livro", cols, index=idx_livro)
         col_registro = st.sidebar.selectbox("Coluna de N° Registro", cols, index=idx_registro)
 
-        # Conversão de Datas
-        df[col_data] = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce')
+        # Conversão de Datas e Cálculo do Ciclo de Vida
+        df[col_data_homol] = pd.to_datetime(df[col_data_homol], dayfirst=True, errors='coerce')
+        df[col_data_concl] = pd.to_datetime(df[col_data_concl], dayfirst=True, errors='coerce')
+        df['Ciclo_em_Dias'] = (df[col_data_concl] - df[col_data_homol]).dt.days
 
         # ==========================================
-        # PÁGINA 1: KPIs + TABELA COMPLETA POR LIVRO
+        # PÁGINA 1: KPIs + TABELAS DE RESUMO
         # ==========================================
         st.markdown("### 📊 Visão Geral")
         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
@@ -168,6 +172,7 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
+        # 1. QUADRO RESUMO DE REGISTROS POR LIVRO
         st.subheader("Quadro Resumo de Registros por Livro")
         
         if col_livro in df.columns and col_registro in df.columns:
@@ -198,8 +203,7 @@ if uploaded_file is not None:
             df_resumo = pd.DataFrame(resumo_list)
             total_registros = df_resumo["Registros"].sum()
 
-            # Construção da Tabela HTML
-            html_tabela = """<table class="tabela-relatorio">
+            html_tabela_livro = """<table class="tabela-relatorio">
                 <thead>
                     <tr>
                         <th>Livro</th>
@@ -210,14 +214,13 @@ if uploaded_file is not None:
                 <tbody>"""
             
             for _, row in df_resumo.iterrows():
-                html_tabela += f"""<tr>
+                html_tabela_livro += f"""<tr>
                     <td>{row['Livro']}</td>
                     <td>{row['Registros']}</td>
                     <td>{row['Intervalo']}</td>
                 </tr>"""
                 
-            # Linha final de Total
-            html_tabela += f"""<tr class="linha-total">
+            html_tabela_livro += f"""<tr class="linha-total">
                     <td>Total</td>
                     <td>{total_registros}</td>
                     <td></td>
@@ -225,9 +228,53 @@ if uploaded_file is not None:
                 </tbody>
             </table>"""
 
-            st.markdown(html_tabela, unsafe_allow_html=True)
+            st.markdown(html_tabela_livro, unsafe_allow_html=True)
         else:
             st.warning("Selecione as colunas de 'Livro' e 'N° Registro' na barra lateral.")
+
+        st.markdown("---")
+
+        # 2. TOP 15 PROCESSOS COM MAIOR CICLO DE VIDA (EM DIAS)
+        st.subheader("Top 15 Processos com Maior Ciclo de Vida (em dias)")
+        
+        df_valid_ciclo = df.dropna(subset=['Ciclo_em_Dias']).copy()
+        df_valid_ciclo = df_valid_ciclo[df_valid_ciclo['Ciclo_em_Dias'] >= 0]
+        top15_ciclo = df_valid_ciclo.sort_values(by='Ciclo_em_Dias', ascending=False).head(15)
+
+        if not top15_ciclo.empty:
+            html_tabela_ciclo = """<table class="tabela-relatorio">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>N° Registro</th>
+                        <th>Livro</th>
+                        <th>Curso</th>
+                        <th>Homologação</th>
+                        <th>Concluído Em</th>
+                        <th>Ciclo de Vida (Dias)</th>
+                    </tr>
+                </thead>
+                <tbody>"""
+            
+            for rank, (_, row) in enumerate(top15_ciclo.iterrows(), 1):
+                data_h_str = row[col_data_homol].strftime('%d/%m/%Y') if pd.notna(row[col_data_homol]) else '-'
+                data_c_str = row[col_data_concl].strftime('%d/%m/%Y') if pd.notna(row[col_data_concl]) else '-'
+                reg_str = f"{int(row[col_registro])}" if pd.notna(row[col_registro]) else '-'
+                
+                html_tabela_ciclo += f"""<tr>
+                    <td><b>{rank}</b></td>
+                    <td>{reg_str}</td>
+                    <td>{row[col_livro]}</td>
+                    <td>{row[col_curso]}</td>
+                    <td>{data_h_str}</td>
+                    <td>{data_c_str}</td>
+                    <td><b>{int(row['Ciclo_em_Dias'])} dias</b></td>
+                </tr>"""
+                
+            html_tabela_ciclo += "</tbody></table>"
+            st.markdown(html_tabela_ciclo, unsafe_allow_html=True)
+        else:
+            st.info("Não foi possível calcular o ciclo de vida. Verifique as colunas de datas na barra lateral.")
 
         # FORÇA QUEBRA DE PÁGINA APÓS A PÁGINA 1
         st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
@@ -294,7 +341,7 @@ if uploaded_file is not None:
         # ==========================================
         st.subheader("Diplomas por Mês de Homologação")
         fig3, ax3 = plt.subplots(figsize=(12, 5.5), dpi=300)
-        df['AnoMes'] = df[col_data].dt.to_period('M').astype(str)
+        df['AnoMes'] = df[col_data_homol].dt.to_period('M').astype(str)
         temporal_counts = df['AnoMes'].value_counts().sort_index().reset_index()
         temporal_counts.columns = ['Mês', 'Qtd']
 
