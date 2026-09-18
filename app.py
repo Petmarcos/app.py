@@ -5,38 +5,79 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 st.set_page_config(
-    page_title=" Homologação de Diplomas - 2026",
+    page_title="Dashboard de Homologação de Diplomas",
     page_icon="🎓",
     layout="wide"
 )
 
-# Estilo CSS para formatar a página, tabelas e modo de impressão
+# --- REGRAS DE ESTILO E QUEBRA DE PÁGINA PARA IMPRESSÃO / PDF ---
 st.markdown("""
     <style>
-    /* Aumenta nitidez e tamanho do texto nas tabelas do Streamlit */
-    [data-testid="stDataFrame"] {
-        font-size: 15px !important;
+    /* Estilização da tabela HTML nativa na tela */
+    .tabela-relatorio {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: sans-serif;
+        font-size: 15px;
+        margin-bottom: 20px;
     }
-    
+    .tabela-relatorio th {
+        background-color: #1f77b4;
+        color: white;
+        text-align: left;
+        padding: 10px;
+        font-weight: bold;
+    }
+    .tabela-relatorio td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #ddd;
+    }
+    .tabela-relatorio tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .tabela-relatorio tr.linha-total {
+        font-weight: bold;
+        background-color: #e6f2ff !important;
+        border-top: 2px solid #1f77b4;
+    }
+
+    /* REGRAS EXCLUSIVAS DE IMPRESSÃO (@media print) */
     @media print {
-        /* Esconde a barra lateral (Sidebar) na impressão */
-        [data-testid="stSidebar"] {
+        /* Oculta sidebar, headers e botões */
+        [data-testid="stSidebar"], header, [data-testid="stHeader"], footer, button, iframe, .stButton {
             display: none !important;
         }
-        /* Esconde o cabeçalho superior e botões da interface */
-        header, [data-testid="stHeader"], footer, button, iframe {
-            display: none !important;
-        }
-        /* Ajusta as margens para ocupar o papel todo */
+        
+        /* Ajusta margens da página principal */
         .main .block-container {
-            padding: 0.5rem !important;
+            padding: 0.5cm !important;
             max-width: 100% !important;
+        }
+
+        /* Define quebras de página explícitas */
+        .quebra-pagina {
+            page-break-after: always !important;
+            break-after: page !important;
+        }
+
+        /* Garante cor de fundo e textos pretos para impressão legível */
+        body, .main {
+            background-color: white !important;
+            color: black !important;
+        }
+        
+        .tabela-relatorio th {
+            background-color: #333 !important;
+            color: white !important;
+        }
+        .tabela-relatorio td {
+            color: black !important;
         }
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓  Emissão de Diplomas Digitais  ")
+st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
 # Sidebar - Upload de arquivo
@@ -53,7 +94,7 @@ if uploaded_file is not None:
             
         st.sidebar.success("Arquivo carregado com sucesso!")
 
-        # --- BOTÃO DE IMPRESSÃO / SALVAR PDF NA SIDEBAR ---
+        # --- BOTÃO DE IMPRESSÃO NA SIDEBAR ---
         with st.sidebar:
             components.html(
                 """
@@ -78,7 +119,7 @@ if uploaded_file is not None:
         st.sidebar.markdown("---")
         st.sidebar.subheader("⚙️ Mapeamento de Colunas")
 
-        # Mapeamento dinâmico automático de colunas
+        # Mapeamento dinâmico de colunas
         cols = list(df.columns)
         idx_curso = next((i for i, c in enumerate(cols) if 'curso' in c.lower()), 0)
         idx_campus = next((i for i, c in enumerate(cols) if 'campus' in c.lower()), 0)
@@ -95,7 +136,9 @@ if uploaded_file is not None:
         # Conversão de Datas
         df[col_data] = pd.to_datetime(df[col_data], dayfirst=True, errors='coerce')
 
-        # --- SEÇÃO 1: CARTÕES NUMÉRICOS (KPIs) ---
+        # ==========================================
+        # PÁGINA 1: KPIs + TABELA COMPLETA POR LIVRO
+        # ==========================================
         st.markdown("### 📊 Visão Geral")
         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
         
@@ -108,7 +151,6 @@ if uploaded_file is not None:
 
         st.markdown("---")
 
-        # --- SEÇÃO 2: QUADRO RESUMO DE REGISTROS POR LIVRO ---
         st.subheader("Quadro Resumo de Registros por Livro")
         
         if col_livro in df.columns and col_registro in df.columns:
@@ -137,28 +179,50 @@ if uploaded_file is not None:
                 })
             
             df_resumo = pd.DataFrame(resumo_list)
+            total_registros = df_resumo["Registros"].sum()
+
+            # Construção da Tabela HTML sem rolagem (Exibe 100% das linhas)
+            html_tabela = """<table class="tabela-relatorio">
+                <thead>
+                    <tr>
+                        <th>Livro</th>
+                        <th>Registros</th>
+                        <th>Intervalo</th>
+                    </tr>
+                </thead>
+                <tbody>"""
             
-            total_row = pd.DataFrame([{
-                "Livro": "Total",
-                "Registros": df_resumo["Registros"].sum(),
-                "Intervalo": ""
-            }])
-            df_resumo_final = pd.concat([df_resumo, total_row], ignore_index=True)
-            
-            st.dataframe(df_resumo_final, hide_index=True, use_container_width=True)
+            for _, row in df_resumo.iterrows():
+                html_tabela += f"""<tr>
+                    <td>{row['Livro']}</td>
+                    <td>{row['Registros']}</td>
+                    <td>{row['Intervalo']}</td>
+                </tr>"""
+                
+            # Linha final de Total
+            html_tabela += f"""<tr class="linha-total">
+                    <td>Total</td>
+                    <td>{total_registros}</td>
+                    <td></td>
+                </tr>
+                </tbody>
+            </table>"""
+
+            st.markdown(html_tabela, unsafe_allow_html=True)
         else:
-            st.warning("Selecione as colunas corretas de 'Livro' e 'N° Registro' na barra lateral para exibir esta tabela.")
+            st.warning("Selecione as colunas de 'Livro' e 'N° Registro' na barra lateral.")
 
-        st.markdown("---")
+        # FORÇA QUEBRA DE PÁGINA APÓS A PÁGINA 1
+        st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
 
-        # Configuração estética padrão
+        # Estilo dos Gráficos
         sns.set_theme(style="whitegrid")
 
-        # --- SEÇÃO 3: GRÁFICOS EMPILHADOS VERTICALMENTE ---
-
-        # 1. Diplomas emitidos por Curso (Top 15)
+        # ==========================================
+        # PÁGINA 2: GRÁFICO POR CURSO
+        # ==========================================
         st.subheader("Diplomas emitidos por Curso (Top 15)")
-        fig1, ax1 = plt.subplots(figsize=(12, 6), dpi=300)
+        fig1, ax1 = plt.subplots(figsize=(12, 7), dpi=300)
         curso_counts = df[col_curso].value_counts().reset_index()
         curso_counts.columns = [col_curso, 'Qtd']
         top_cursos = curso_counts.head(15)
@@ -178,11 +242,14 @@ if uploaded_file is not None:
         ax1.set_xlim(0, top_cursos['Qtd'].max() * 1.1)
         st.pyplot(fig1)
 
-        st.markdown("---")
+        # FORÇA QUEBRA DE PÁGINA APÓS O GRÁFICO 1
+        st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
 
-        # 2. Diplomas emitidos por Campus
+        # ==========================================
+        # PÁGINA 3: GRÁFICO POR CAMPUS
+        # ==========================================
         st.subheader("Diplomas emitidos por Campus")
-        fig2, ax2 = plt.subplots(figsize=(12, 5), dpi=300)
+        fig2, ax2 = plt.subplots(figsize=(12, 6), dpi=300)
         campus_counts = df[col_campus].value_counts().reset_index()
         campus_counts.columns = [col_campus, 'Qtd']
 
@@ -202,11 +269,14 @@ if uploaded_file is not None:
         ax2.set_ylim(0, campus_counts['Qtd'].max() * 1.12)
         st.pyplot(fig2)
 
-        st.markdown("---")
+        # FORÇA QUEBRA DE PÁGINA APÓS O GRÁFICO 2
+        st.markdown('<div class="quebra-pagina"></div>', unsafe_allow_html=True)
 
-        # 3. Diplomas por Mês de Homologação
+        # ==========================================
+        # PÁGINA 4: EVOLUÇÃO MENSAL (SÉRIE TEMPORAL)
+        # ==========================================
         st.subheader("Diplomas por Mês de Homologação")
-        fig3, ax3 = plt.subplots(figsize=(12, 4.5), dpi=300)
+        fig3, ax3 = plt.subplots(figsize=(12, 5.5), dpi=300)
         df['AnoMes'] = df[col_data].dt.to_period('M').astype(str)
         temporal_counts = df['AnoMes'].value_counts().sort_index().reset_index()
         temporal_counts.columns = ['Mês', 'Qtd']
@@ -234,7 +304,7 @@ if uploaded_file is not None:
         plt.xticks(rotation=45, fontsize=11)
         st.pyplot(fig3)
 
-        # Visualização opcional da planilha
+        # Tabela expansível na tela (opcional)
         with st.expander("📋 Ver planilha de dados completa"):
             st.dataframe(df)
 
