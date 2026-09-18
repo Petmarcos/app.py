@@ -13,7 +13,7 @@ st.set_page_config(
 # --- REGRAS DE ESTILO E CONTRASTE PARA TELA E IMPRESSÃO / PDF ---
 st.markdown("""
     <style>
-    /* Estilização da tabela HTML nativa na tela (Sem linhas internas entre registros) */
+    /* 1. TELA: Tabela limpa SEM linhas divisórias internas */
     .tabela-relatorio {
         width: 100%;
         border-collapse: collapse;
@@ -27,11 +27,11 @@ st.markdown("""
         text-align: left;
         padding: 9px;
         font-weight: bold;
-        border-bottom: none;
+        border-bottom: none !important;
     }
     .tabela-relatorio td {
         padding: 7px 9px;
-        border-bottom: none; /* Remove a linha/divisória entre as linhas da tabela */
+        border-bottom: none !important; /* Sem linha na tela */
     }
     .tabela-relatorio tr:nth-child(even) {
         background-color: #f9f9f9;
@@ -39,10 +39,10 @@ st.markdown("""
     .tabela-relatorio tr.linha-total {
         font-weight: bold;
         background-color: #e6f2ff !important;
-        border-top: 2px solid #1f77b4;
+        border-top: 2px solid #1f77b4 !important;
     }
 
-    /* REGRAS EXCLUSIVAS DE IMPRESSÃO (@media print) */
+    /* 2. IMPRESSÃO / PDF: Força a inclusão das linhas divisórias elegantes */
     @media print {
         /* Oculta sidebar, headers e botões de interface */
         [data-testid="stSidebar"], header, [data-testid="stHeader"], footer, button, iframe, .stButton {
@@ -61,32 +61,31 @@ st.markdown("""
             break-after: page !important;
         }
 
-        /* Força fundo branco e textos escuros/pretos para nitidez total no PDF */
+        /* Força fundo branco e textos pretos no PDF */
         html, body, .main, [data-testid="stAppViewContainer"] {
             background-color: white !important;
             color: #000000 !important;
         }
 
-        /* Garante que títulos, subtítulos e descrições fiquem pretos */
         h1, h2, h3, h4, h5, h6, p, label, span, div {
             color: #000000 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
 
-        /* Força a cor dos cartões de métrica (KPIs) para preto */
         [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
             color: #000000 !important;
         }
 
-        /* Mantém a estética limpa para o relatório em papel/PDF */
+        /* MANTEIN A LINHA DIVISÓRIA CINZA APENAS NA IMPRESSÃO */
         .tabela-relatorio th {
             background-color: #222222 !important;
             color: #ffffff !important;
+            border-bottom: 2px solid #000000 !important;
         }
         .tabela-relatorio td {
             color: #000000 !important;
-            border-bottom: none !important;
+            border-bottom: 1px solid #d0d0d0 !important; /* Linha de impressão reativada */
         }
         .tabela-relatorio tr.linha-total {
             background-color: #f0f0f0 !important;
