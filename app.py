@@ -102,7 +102,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
+st.title("🎓 Emissão de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
 # Sidebar - Upload de arquivo
