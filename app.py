@@ -3,6 +3,8 @@ import streamlit.components.v1 as components
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import io
+import base64
 
 st.set_page_config(
     page_title="Dashboard de Homologação de Diplomas",
@@ -103,12 +105,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🎓 Dashboard de Diplomas Digitais")
+st.title("🎓 Dashboard de Emissão de Diplomas Digitais")
 st.write("Faça o upload da sua planilha para gerar automaticamente o painel de gestão.")
 
 # Sidebar - Upload de arquivo
 st.sidebar.header("📁 Enviar Planilha")
 uploaded_file = st.sidebar.file_uploader("Selecione o arquivo (.xlsx ou .csv)", type=["csv", "xlsx"])
+
+def fig_to_base64(fig):
+    """Converte uma figura do Matplotlib em uma string base64 para incorporar no HTML."""
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight', dpi=300)
+    buf.seek(0)
+    return base64.b64encode(buf.getvalue()).decode('utf-8')
 
 if uploaded_file is not None:
     try:
@@ -119,28 +128,6 @@ if uploaded_file is not None:
             df = pd.read_excel(uploaded_file)
             
         st.sidebar.success("Arquivo carregado com sucesso!")
-
-        # --- BOTÃO DE IMPRESSÃO NA SIDEBAR ---
-        with st.sidebar:
-            components.html(
-                """
-                <button onclick="window.parent.print()" style="
-                    background-color: #0d6efd;
-                    color: white;
-                    padding: 10px 14px;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    width: 100%;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                ">
-                    🖨️ Imprimir / Salvar PDF
-                </button>
-                """,
-                height=50
-            )
 
         st.sidebar.markdown("---")
         st.sidebar.subheader("⚙️ Mapeamento de Colunas")
@@ -174,18 +161,23 @@ if uploaded_file is not None:
         st.markdown("### 📊 Visão Geral")
         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
         
+        total_diplomas_val = f"{len(df):,}".replace(",", ".")
+        total_cursos_val = df[col_curso].nunique()
+        total_campus_val = df[col_campus].nunique()
+
         with kpi_col1:
-            st.metric(label="Total de Diplomas Emitidos", value=f"{len(df):,}".replace(",", "."))
+            st.metric(label="Total de Diplomas Emitidos", value=total_diplomas_val)
         with kpi_col2:
-            st.metric(label="Total de Cursos Atendidos", value=df[col_curso].nunique())
+            st.metric(label="Total de Cursos Atendidos", value=total_cursos_val)
         with kpi_col3:
-            st.metric(label="Total de Campus Atendidos", value=df[col_campus].nunique())
+            st.metric(label="Total de Campus Atendidos", value=total_campus_val)
 
         st.markdown("---")
 
         # 1. QUADRO RESUMO DE REGISTROS POR LIVRO
         st.subheader("Quadro Resumo de Registros por Livro")
         
+        html_tabela_livro = ""
         if col_livro in df.columns and col_registro in df.columns:
             df[col_registro] = pd.to_numeric(df[col_registro], errors='coerce')
             
@@ -251,6 +243,7 @@ if uploaded_file is not None:
         df_valid_ciclo = df.dropna(subset=['Ciclo_em_Dias']).copy()
         df_valid_ciclo = df_valid_ciclo[df_valid_ciclo['Ciclo_em_Dias'] >= 0]
         
+        html_tabela_prazos = ""
         if not df_valid_ciclo.empty:
             prazos_freq = df_valid_ciclo['Ciclo_em_Dias'].value_counts().reset_index()
             prazos_freq.columns = ['Ciclo (dias)', 'Quantidade de registros']
@@ -283,6 +276,7 @@ if uploaded_file is not None:
         
         top30_ciclo = df_valid_ciclo.sort_values(by='Ciclo_em_Dias', ascending=False).head(30)
 
+        html_tabela_ciclo = ""
         if not top30_ciclo.empty:
             html_tabela_ciclo = """<table class="tabela-relatorio">
                 <thead>
@@ -370,7 +364,7 @@ if uploaded_file is not None:
         for p in ax2.patches:
             height = p.get_height()
             if height > 0:
-                ax2.annotate(f"{int(height)}",
+                ax2.annotate(f"{p.get_x() + p.get_width() / 2.:.0f}",
                              (p.get_x() + p.get_width() / 2., height + 2),
                              ha='center', va='bottom', fontsize=9, fontweight='bold', color='black')
 
@@ -412,6 +406,143 @@ if uploaded_file is not None:
         ax3.set_ylabel("Quantidade Emitida", fontsize=10, fontweight='bold', color='black')
         plt.xticks(rotation=45, fontsize=9, color='black')
         st.pyplot(fig3)
+
+        # --- GERAÇÃO DO ARQUIVO HTML COMPLETO PARA DOWNLOAD ---
+        img1_b64 = fig_to_base64(fig1)
+        img2_b64 = fig_to_base64(fig2)
+        img3_b64 = fig_to_base64(fig3)
+
+        html_conteudo = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Emissão de Diplomas Digitais</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f8f9fa;
+            color: #333;
+        }}
+        .container {{
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }}
+        h1 {{ color: #1f77b4; }}
+        .kpi-container {{
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }}
+        .kpi-card {{
+            background: #e6f2ff;
+            padding: 15px;
+            border-radius: 8px;
+            width: 30%;
+            text-align: center;
+        }}
+        .kpi-card h3 {{ margin: 0; color: #1f77b4; }}
+        .kpi-card p {{ font-size: 24px; font-weight: bold; margin: 5px 0 0 0; }}
+        .tabela-relatorio {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }}
+        .tabela-relatorio th {{
+            background-color: #1f77b4;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }}
+        .tabela-relatorio td {{
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }}
+        .tabela-relatorio tr:nth-child(even) {{
+            background-color: #f9f9f9;
+        }}
+        .grafico-img {{
+            width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Relatório de Emissão de Diplomas Digitais</h1>
+        
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <h3>Total de Diplomas</h3>
+                <p>{total_diplomas_val}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Cursos Atendidos</h3>
+                <p>{total_cursos_val}</p>
+            </div>
+            <div class="kpi-card">
+                <h3>Campus Atendidos</h3>
+                <p>{total_campus_val}</p>
+            </div>
+        </div>
+
+        <h2>Quadro Resumo de Registros por Livro</h2>
+        {html_tabela_livro}
+
+        <h2>Distribuição dos 20 Maiores Prazos de Conclusão</h2>
+        {html_tabela_prazos}
+
+        <h2>Top 30 Processos com Maior Ciclo de Vida (em dias)</h2>
+        {html_tabela_ciclo}
+
+        <h2>Diplomas emitidos por Curso (Top 15)</h2>
+        <img class="grafico-img" src="data:image/png;base64,{img1_b64}">
+
+        <h2>Diplomas emitidos por Campus</h2>
+        <img class="grafico-img" src="data:image/png;base64,{img2_b64}">
+
+        <h2>Diplomas por Mês de Homologação</h2>
+        <img class="grafico-img" src="data:image/png;base64,{img3_b64}">
+    </div>
+</body>
+</html>"""
+
+        # --- BOTAO DE IMPRESSAO E DOWNLOAD NA SIDEBAR ---
+        with st.sidebar:
+            components.html(
+                """
+                <button onclick="window.parent.print()" style="
+                    background-color: #0d6efd;
+                    color: white;
+                    padding: 10px 14px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    width: 100%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                ">
+                    🖨️ Imprimir / Salvar PDF
+                </button>
+                """,
+                height=50
+            )
+
+            st.download_button(
+                label="🌐 Baixar Relatório HTML",
+                data=html_conteudo,
+                file_name="relatorio_diplomas.html",
+                mime="text/html",
+                use_container_width=True
+            )
 
         # Tabela expansível na tela (Oculta automaticamente no PDF/Impressão)
         with st.expander("📋 Ver planilha de dados completa"):
